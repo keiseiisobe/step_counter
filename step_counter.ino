@@ -1,4 +1,6 @@
 #include "step_counter.h"
+#include <SoftwareSerial.h>
+#include <string>
 #include <vector>
 #include <algorithm>
 
@@ -13,20 +15,25 @@ const int accelerationMin = -3000;
 const int accelerationMax = 3000;
 
 float dynamicThreshold = -3.0;
-const float sensitivity = 0.2;
+const float sensitivity = 0.05;
 
 LoopState loopState = lookingForMaxPeak;
 
 int stepCount = 0;
+int preStepCount = 0;
 int possibleStepCount = 0;
 
 int lookingForMinPeakCount = 0;
 
 bool regulationMode = false;
 
-void setup()
-{
+SoftwareSerial bleSerial(2, 3);  // TX, RX
+
+void setup() {
+  // put your setup code here, to run once:
+  bleSerial.begin(9600);
   Serial.begin(9600);
+  delay(3000);
 }
 
 void loop()
@@ -76,7 +83,8 @@ void loop()
     regulationMode = false;
   }
 
-    for (auto it = vals.begin();it != vals.end();it++) {
+  /*
+  for (auto it = vals.begin();it != vals.end();it++) {
     Serial.print("filtered_module:");
     Serial.print(*it);
     Serial.print(", ");
@@ -99,7 +107,13 @@ void loop()
     Serial.print(stepCount);
     Serial.print("\n");
   }
+  */
 
+  if (preStepCount < stepCount) {
+    std::string step_result = "step: " + std::to_string(stepCount);
+    bleSerial.write(step_result.c_str());
+    preStepCount = stepCount;
+  }
 }
 
 float analog2acceleration(int analog) {
@@ -140,4 +154,17 @@ float lowPassFilter() {
   }
   return average;
 }
+
+/* 
+// used for checking serial monitor
+void loop() {
+  if (Serial.available()) {
+    bleSerial.write(Serial.read());
+  }
+
+  if (bleSerial.available()) {
+    Serial.write(bleSerial.read());
+  }
+}
+*/
 
